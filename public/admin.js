@@ -14,13 +14,13 @@ async function adminApi(url, opts = {}) {
 }
 
 async function checkAuth() {
-  try { await adminApi('/api/admin/check', { method: 'POST' }); return true; } catch { return false; }
+  try { await adminApi('api/admin/check', { method: 'POST' }); return true; } catch { return false; }
 }
 
 async function loadData() {
   const [stateData, usersData] = await Promise.all([
-    fetch('/api/state').then(r => r.json()),
-    adminApi('/api/admin/users')
+    fetch('api/state').then(r => r.json()),
+    adminApi('api/admin/users')
   ]);
   state.locked = stateData.locked;
   state.results = stateData.results;
@@ -115,7 +115,7 @@ window.setResult = async (seriesId) => {
   const games = $('#games-' + seriesId).value;
   if (!winnerId) return toast('Pick a winner first', 'error');
   try {
-    await adminApi('/api/admin/result', {
+    await adminApi('api/admin/result', {
       method: 'POST',
       body: JSON.stringify({ seriesId, winnerId, games: games || null })
     });
@@ -127,14 +127,15 @@ window.setResult = async (seriesId) => {
 window.clearResult = async (seriesId) => {
   if (!confirm('Clear this result? This will reset downstream matchups.')) return;
   try {
-    await adminApi('/api/admin/result/' + encodeURIComponent(seriesId), { method: 'DELETE' });
+    await adminApi('api/admin/result/' + encodeURIComponent(seriesId), { method: 'DELETE' });
     toast('Result cleared', 'success');
     await loadData();
   } catch (e) { toast(e.message, 'error'); }
 };
 
 window.copyUserLink = (editKey) => {
-  const url = `${location.origin}/?k=${editKey}`;
+  const appRoot = location.pathname.replace(/admin\.html$/, '');
+  const url = `${location.origin}${appRoot}?k=${editKey}`;
   navigator.clipboard.writeText(url);
   toast('Edit link copied', 'success');
 };
@@ -142,7 +143,7 @@ window.copyUserLink = (editKey) => {
 window.deleteUser = async (id, name) => {
   if (!confirm(`Delete "${name}" and all their picks? This can't be undone.`)) return;
   try {
-    await adminApi('/api/admin/user/' + id, { method: 'DELETE' });
+    await adminApi('api/admin/user/' + id, { method: 'DELETE' });
     toast('User deleted', 'success');
     await loadData();
   } catch (e) { toast(e.message, 'error'); }
@@ -150,7 +151,7 @@ window.deleteUser = async (id, name) => {
 
 $('#lockToggleBtn').addEventListener('click', async () => {
   try {
-    const res = await adminApi('/api/admin/lock', { method: 'POST', body: JSON.stringify({ locked: !state.locked }) });
+    const res = await adminApi('api/admin/lock', { method: 'POST', body: JSON.stringify({ locked: !state.locked }) });
     state.locked = res.locked;
     renderLockButton();
     toast(state.locked ? 'Picks locked 🔒' : 'Picks unlocked 🔓', 'success');

@@ -28,7 +28,7 @@ async function api(url, opts = {}) {
 
 async function loadState() {
   try {
-    const data = await api('/api/state');
+    const data = await api('api/state');
     state.locked = data.locked;
     state.results = data.results;
     state.leaderboard = data.leaderboard;
@@ -67,7 +67,7 @@ async function hydrateUser() {
   }
   if (!key) return;
   try {
-    const user = await api('/api/user/' + encodeURIComponent(key));
+    const user = await api('api/user/' + encodeURIComponent(key));
     state.user = { id: user.id, name: user.name, editKey: key };
     state.picks = { ...user.picks };
     state.tiebreaker = user.tiebreaker;
@@ -700,7 +700,7 @@ async function save() {
     saveBtn.innerHTML = '<span class="spinner"></span> Saving...';
     saveBtn.disabled = true;
     try {
-      const resp = await api('/api/register', {
+      const resp = await api('api/register', {
         method: 'POST',
         body: JSON.stringify({ name, picks: state.picks, tiebreaker })
       });
@@ -734,7 +734,7 @@ async function save() {
     saveBtn.innerHTML = '<span class="spinner"></span> Saving...';
     saveBtn.disabled = true;
     try {
-      await api('/api/user/' + encodeURIComponent(state.user.editKey) + '/picks', {
+      await api('api/user/' + encodeURIComponent(state.user.editKey) + '/picks', {
         method: 'POST',
         body: JSON.stringify({ picks: state.picks, tiebreaker })
       });
@@ -763,7 +763,7 @@ async function loadViaEditKey() {
     key = u.searchParams.get('k') || raw;
   } catch {}
   try {
-    const user = await api('/api/user/' + encodeURIComponent(key));
+    const user = await api('api/user/' + encodeURIComponent(key));
     state.user = { id: user.id, name: user.name, editKey: key };
     state.picks = { ...user.picks };
     state.tiebreaker = user.tiebreaker;
