@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: wankers
+      POSTGRES_USER: wankers
+      POSTGRES_DB: wankers
+    ports:
+      - "5432:5432"
+    volumes:
+      - wankers-pg:/var/lib/postgresql/data
+
+volumes:
+  wankers-pg:

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin · Wankers Pool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Lexend+Deca:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A0%EF%B8%8F%3C/text%3E%3C/svg%3E">
+  <style>
+    .admin-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 14px;
+    }
+    .admin-series-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      box-shadow: var(--shadow-xs);
+    }
+    .admin-series-card .matchup-text {
+      font: var(--type-body-semibold);
+      color: var(--text-title);
+      margin-top: 4px;
+    }
+    .admin-series-card .matchup-sub {
+      font: var(--type-code-sm);
+      color: var(--text-caption);
+      margin-top: 4px;
+    }
+    .admin-series-card .round-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--bg-muted);
+      color: var(--text-subtitle);
+      font: 600 10px/1.2 var(--font-body);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-radius: var(--radius-pill);
+    }
+    .admin-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .admin-row select, .admin-row input {
+      padding: 9px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-muted);
+      border-radius: var(--radius-sm);
+      color: var(--text-body);
+      font: var(--type-body);
+    }
+    .admin-row select { flex: 1; min-width: 0; }
+    .admin-row input { width: 80px; font-variant-numeric: tabular-nums; }
+    .admin-result-set {
+      margin-top: 10px;
+      padding: 10px 12px;
+      background: var(--green-100);
+      border: 1px solid var(--green-300);
+      border-radius: var(--radius-sm);
+      font: var(--type-body-small);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      color: var(--green-900);
+    }
+    .admin-result-set .clear-btn {
+      background: none;
+      border: none;
+      color: var(--red-600);
+      cursor: pointer;
+      font: var(--type-button-sm);
+    }
+    .admin-control {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      padding: 18px 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow-xs);
+    }
+    .admin-control h3 { font: var(--type-headline-small); color: var(--text-title); }
+    .admin-control p { color: var(--text-caption); font: var(--type-body-small); margin-top: 2px; }
+    .admin-users-table {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-xs);
+      overflow: hidden;
+    }
+    .admin-user-row {
+      display: grid;
+      grid-template-columns: 1fr 220px 80px auto;
+      gap: 12px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      align-items: center;
+    }
+    .admin-user-row:last-child { border-bottom: none; }
+    .admin-user-row.header {
+      background: var(--bg-muted);
+      font: var(--type-overline);
+      color: var(--text-caption);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .admin-user-row code {
+      font: var(--type-code-sm);
+      color: var(--text-caption);
+      word-break: break-all;
+    }
+    .admin-user-row .tb-val { font: var(--type-code-sm); color: var(--text-body); }
+    .admin-user-row .actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .admin-user-row .actions button {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-muted);
+      color: var(--text-subtitle);
+      padding: 5px 10px;
+      border-radius: var(--radius-xs);
+      font: var(--type-body-small);
+      cursor: pointer;
+    }
+    .admin-user-row .actions button:hover { background: var(--bg-muted); }
+    .admin-user-row .actions .danger:hover { color: var(--red-600); border-color: var(--red-400); background: var(--red-100); }
+    .login-box {
+      max-width: 420px;
+      margin: 80px auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+    }
+    .login-box h2 { font: var(--type-subtitle); margin-bottom: 8px; }
+    .login-box p { color: var(--text-caption); font: var(--type-body); margin-bottom: 20px; }
+    .login-box input {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-muted);
+      border-radius: var(--radius-sm);
+      color: var(--text-body);
+      margin-bottom: 12px;
+      font: var(--type-body);
+    }
+    .login-box input:focus {
+      border-color: var(--blue-700);
+      box-shadow: var(--shadow-focus);
+    }
+    .section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin: 32px 0 14px;
+    }
+    .section-title h2 { font: var(--type-subtitle); color: var(--text-title); }
+    .section-title .meta { font: var(--type-body-small); color: var(--text-caption); }
+
+    @media (max-width: 720px) {
+      .admin-user-row { grid-template-columns: 1fr; gap: 4px; padding: 12px; }
+      .admin-user-row.header { display: none; }
+      .admin-user-row .actions { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body class="darwin">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="brand">
+        <div class="brand-mark" style="background: var(--blue-700)">🛠</div>
+        <div>
+          <div class="brand-title">Wankers Pool · Admin</div>
+          <div class="brand-sub">Manage results & lock</div>
+        </div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="/" class="btn-ghost-dark">← Back to bracket</a>
+    </div>
+  </div>
+
+  <main>
+    <section id="loginPanel">
+      <div class="login-box">
+        <h2>Admin login</h2>
+        <p>Enter the admin key (set via the <code style="background: var(--bg-muted); padding: 1px 6px; border-radius: 4px; font: var(--type-code-sm);">ADMIN_KEY</code> environment variable).</p>
+        <input type="password" id="adminKeyInput" placeholder="admin key">
+        <button class="btn btn-primary" id="loginBtn" style="width: 100%">Unlock</button>
+        <p class="error" id="loginError" hidden style="margin-top: 12px"></p>
+      </div>
+    </section>
+
+    <section id="adminPanel" hidden>
+      <div class="admin-control">
+        <div style="flex: 1; min-width: 240px;">
+          <h3>🔒 Pick lock</h3>
+          <p>When locked, no new users can register and existing users can't edit their picks.</p>
+        </div>
+        <button class="btn btn-primary" id="lockToggleBtn">Toggle lock</button>
+      </div>
+
+      <div class="section-title">
+        <div>
+          <h2>Series results</h2>
+          <p class="meta">Mark the winner as each series concludes. Optional: games played (4–7).</p>
+        </div>
+      </div>
+      <div id="seriesList" class="admin-grid"></div>
+
+      <div class="section-title">
+        <div>
+          <h2>Registered wankers</h2>
+          <p class="meta">View, delete, or copy a user's edit link.</p>
+        </div>
+      </div>
+      <div id="usersList" class="admin-users-table"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="data.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wankers Pool · 2026 NBA Bracket</title>
+  <meta name="description" content="March Madness-style picks for the 2026 NBA Playoffs. Make your bracket, track the leaderboard, bragging rights to the winner.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Lexend+Deca:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%80%3C/text%3E%3C/svg%3E">
+</head>
+<body class="darwin">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="brand">
+        <div class="brand-mark">W</div>
+        <div>
+          <div class="brand-title">Wankers Pool</div>
+          <div class="brand-sub">NBA · 2026</div>
+        </div>
+      </div>
+      <div class="topbar-divider"></div>
+      <nav class="nav">
+        <button class="nav-item active" data-tab="bracket">Bracket</button>
+        <button class="nav-item" data-tab="leaderboard">Leaderboard</button>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill" id="statusPill">
+        <span class="dot"></span>
+        <span id="statusText">Picks open</span>
+      </div>
+      <button class="btn-ghost-dark" id="joinBtn">Join the pool</button>
+      <div class="avatar-ball">🏀</div>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-inner">
+      <div>
+        <div class="overline" id="heroOverline">⬤ 2026 NBA Playoffs · Bracket Challenge</div>
+        <h1>Who's your <em>2026</em><br>champion?</h1>
+        <p>Click to advance teams through the tree. Your picks lock at tip-off — then watch the leaderboard move live as games finish.</p>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="label">Playoff tip-off</div>
+          <div class="value">Apr 20</div>
+          <div class="sub">2026 · Round 1</div>
+        </div>
+        <div class="hero-stat">
+          <div class="label">Pick deadline</div>
+          <div class="value" id="heroDeadline">Tip-off</div>
+          <div class="sub" id="heroDeadlineSub">Lock in before Game 1</div>
+        </div>
+        <div class="hero-stat">
+          <div class="label">Players</div>
+          <div class="value" id="heroPlayers">—</div>
+          <div class="sub">Bragging rights on the line</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main>
+
+    <!-- BRACKET VIEW -->
+    <div id="panel-bracket">
+      <div class="layout">
+        <div>
+          <div class="bracket-card">
+            <div class="bracket-banner">
+              <div class="conf-label">
+                <span class="conf-dot" style="background: var(--blue-700)"></span>
+                <div>
+                  <div class="overline">Western Conference</div>
+                  <div style="font: var(--type-body-small); color: var(--text-caption);">OKC (1) · SAS (2) · DEN (3) · LAL (4)</div>
+                </div>
+              </div>
+              <div class="center">2026 NBA PLAYOFFS</div>
+              <div class="conf-label" style="flex-direction: row-reverse">
+                <span class="conf-dot" style="background: var(--green-600)"></span>
+                <div style="text-align: right">
+                  <div class="overline">Eastern Conference</div>
+                  <div style="font: var(--type-body-small); color: var(--text-caption);">DET (1) · BOS (2) · NYK (3) · CLE (4)</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Desktop horizontal tree -->
+            <div class="bracket-tree" id="bracketTree"></div>
+
+            <!-- Mobile / narrow fallback -->
+            <div class="bracket-stacked" id="bracketStacked"></div>
+
+            <!-- Champion banner -->
+            <div id="championBanner"></div>
+          </div>
+
+          <div class="controls-bar" id="controlsBar">
+            <div class="hint">
+              <strong id="controlsProgress">0 / 15 picks</strong> ·
+              Click a team to advance them. Changing an earlier round clears picks that depended on it.
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn btn-ghost" id="chalkBtn">Chalk picks</button>
+              <button class="btn btn-ghost" id="resetBtn">Reset</button>
+              <button class="btn btn-accent" id="saveBtnMain">💾 Save my bracket</button>
+            </div>
+          </div>
+          <p class="error" id="saveErrorMain" hidden style="margin-top: 8px;"></p>
+        </div>
+
+        <!-- SIDE PANEL -->
+        <aside class="side-panel">
+          <div class="progress-card">
+            <div class="overline-xs">Your bracket · 2026</div>
+            <div class="big"><span id="picksFilled">0</span><span class="slash">/15</span></div>
+            <div class="sub" id="picksSub">series picked</div>
+            <div class="progress-track"><div class="progress-fill" id="progressFill" style="width: 0%"></div></div>
+            <div class="you-name" id="youName" hidden></div>
+          </div>
+
+          <div class="card">
+            <div class="overline">Tiebreaker</div>
+            <div class="field">
+              <label for="tiebreakerInput">Total points scored · NBA Finals Game 1</label>
+              <input type="number" id="tiebreakerInput" min="100" max="400" step="1" placeholder="e.g. 215">
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="overline">Scoring</div>
+            <div class="scoring-list">
+              <div class="row"><span class="label">First round</span><span class="val">1 pt × 8</span></div>
+              <div class="row"><span class="label">Conf. semifinals</span><span class="val">2 pts × 4</span></div>
+              <div class="row"><span class="label">Conf. finals</span><span class="val">4 pts × 2</span></div>
+              <div class="row"><span class="label">NBA Finals</span><span class="val">8 pts × 1</span></div>
+              <div class="note"><strong>Max possible:</strong> 32 points. Points only count once a series is decided. Tie → closest Finals Game 1 total points.</div>
+            </div>
+          </div>
+
+          <button class="btn btn-ghost" id="copyLinkBtn" hidden>📋 Copy my edit link</button>
+        </aside>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD VIEW -->
+    <div id="panel-leaderboard" hidden>
+      <div class="layout">
+        <div id="leaderboardContainer"></div>
+        <aside style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="card">
+            <div class="overline">How scoring works</div>
+            <div style="font: var(--type-body); color: var(--text-subtitle); line-height: 1.5; margin-top: 10px;">
+              Points are only awarded once a series is decided. Admin marks winners as each round concludes. The live leaderboard updates as games finish.
+            </div>
+            <button class="btn btn-ghost" style="margin-top: 14px; width: 100%;" data-tab="bracket">← Back to your bracket</button>
+          </div>
+          <div class="leader-card" id="leaderCard" hidden>
+            <div class="overline-xs">Current leader</div>
+            <div class="name" id="leaderName">—</div>
+            <div class="sub" id="leaderSub">—</div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    Built for bragging rights · <a href="admin.html">admin</a>
+  </footer>
+
+  <!-- REGISTER / EDIT MODAL -->
+  <div class="modal-overlay" id="joinModal">
+    <div class="modal">
+      <h2 id="joinModalTitle">Save your bracket</h2>
+      <p class="lead" id="joinModalLead">Enter a name so your picks show up on the leaderboard. You'll get a private link to come back and edit.</p>
+      <div class="modal-row">
+        <input type="text" id="nameInput" placeholder="Your name (e.g. Noam the Chosen One)" maxlength="40" autocomplete="off">
+      </div>
+      <button class="btn btn-accent" id="startPicksBtn" style="width: 100%">💾 Save my bracket →</button>
+      <div class="divider"><span>already registered?</span></div>
+      <div class="modal-row">
+        <input type="text" id="editKeyInput" placeholder="Paste your edit link or key" autocomplete="off">
+      </div>
+      <button class="btn btn-ghost" id="loadEditBtn" style="width: 100%">Load my existing bracket</button>
+      <p class="error" id="gateError" hidden></p>
+      <button class="btn btn-ghost" id="closeModalBtn" style="margin-top: 16px; width: 100%; border: none; color: var(--text-caption)">Cancel</button>
+    </div>
+  </div>
+
+  <!-- VIEW-ONLY PICKS MODAL (click leaderboard row) -->
+  <div class="modal-overlay" id="picksViewModal">
+    <div class="modal" style="max-width: 720px;">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px;">
+        <div>
+          <h2 id="picksViewName">—</h2>
+          <p class="lead" id="picksViewMeta" style="margin-bottom: 0;">—</p>
+        </div>
+        <button class="btn btn-ghost" id="picksViewClose" style="padding: 6px 10px;">✕</button>
+      </div>
+      <p style="font: var(--type-body-small); color: var(--text-caption); margin-bottom: 18px;" id="picksViewRange">—</p>
+      <div id="picksViewBody"></div>
+    </div>
+  </div>
+
+  <!-- SUCCESS MODAL (after save) -->
+  <div class="modal-overlay" id="linkModal">
+    <div class="modal">
+      <h2 id="linkModalTitle">🎉 You're in!</h2>
+      <p class="lead" id="linkModalLead">Your bracket is locked in. <strong>Save this private link</strong> so you can edit picks before the playoffs start.</p>
+      <div class="link-box" id="linkBox"></div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary" id="linkCopyBtn" style="flex: 1">📋 Copy link</button>
+        <button class="btn btn-ghost" id="linkCloseBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <canvas id="confetti" class="confetti"></canvas>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
