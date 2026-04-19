@@ -14,10 +14,10 @@ March Madness-style bracket pool for the 2026 NBA Playoffs. Players register, pi
 
 ## Deploy to Render (free, one click)
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/noam-a11y/wankers-nba-bracket)
 
-1. **Push this repo to GitHub** if you haven't already.
-2. Go to [render.com/deploy](https://render.com/deploy) → **New → Blueprint** → connect this repo.
+1. Click the button above (or go to [render.com/deploy](https://render.com/deploy?repo=https://github.com/noam-a11y/wankers-nba-bracket)).
+2. Sign in / sign up for Render (GitHub login works).
 3. Render reads [`render.yaml`](./render.yaml) and provisions both a **free Web Service** and a **free Postgres database**, auto-wiring `DATABASE_URL`.
 4. You'll be prompted for one secret: **`ADMIN_KEY`** — set it to a long random string. That's your admin password.
 5. Click **Apply**. First deploy takes ~3 minutes.
