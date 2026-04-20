@@ -466,29 +466,14 @@ function renderSidePanel() {
   }
 }
 
-// Max round visible in picks-view: locked + round's prior round is fully done.
-// - Not locked: 0 (nothing visible)
-// - Locked, no R1 results: 1 (R1 in progress)
-// - All R1 done: 2 (R2 in progress)
-// - All R2 done: 3 (CF)
-// - All CF done: 4 (Finals)
-function visibleMaxRound() {
-  if (!state.locked) return 0;
-  let max = 1;
-  for (let r = 1; r <= 3; r++) {
-    const sr = SERIES.filter(s => s.round === r);
-    if (sr.length && sr.every(s => state.results[s.id])) max = r + 1;
-    else break;
-  }
-  return max;
-}
+// Pool is open — everyone can see everyone else's picks at all four rounds, always.
+function visibleMaxRound() { return 4; }
 
 function renderLeaderboard() {
   const container = $('#leaderboardContainer');
   const board = state.leaderboard;
   const youName = state.user?.name?.toLowerCase();
-  const clickable = state.locked;
-  const vmax = visibleMaxRound();
+  const clickable = true; // pool is open — everyone can see everyone else's brackets
 
   if (!board.length) {
     container.innerHTML = `
@@ -502,9 +487,7 @@ function renderLeaderboard() {
     return;
   }
 
-  const hint = clickable
-    ? `<span style="color: var(--green-700); font-weight: 600;">● Locked.</span> Tap a row to peek at their picks through ${ROUND_NAMES[vmax]}.`
-    : `Picks hidden until the bracket locks at tip-off.`;
+  const hint = `<span style="color: var(--green-700); font-weight: 600;">● Open pool.</span> Tap any row to see that player's full bracket.`;
 
   container.innerHTML = `
     <div class="leaderboard">
@@ -582,9 +565,8 @@ function closeJoinModal() {
 }
 function openPicksViewByName(name) {
   const user = state.leaderboard.find(u => u.name.toLowerCase() === name.toLowerCase());
-  if (!user || !state.locked) return;
+  if (!user) return;
   const picks = user.picks || {};
-  const vmax = visibleMaxRound();
   const isYou = state.user && state.user.name.toLowerCase() === name.toLowerCase();
 
   $('#picksViewName').textContent = (isYou ? 'Your bracket · ' : '') + user.name;
@@ -596,16 +578,15 @@ function openPicksViewByName(name) {
     · F ${user.correctByRound[4]}/1
     ${user.tiebreaker != null ? `· TB ${user.tiebreaker}` : ''}
   `;
-  $('#picksViewRange').textContent = vmax === 1
-    ? 'Showing First Round picks only. Later rounds reveal as they tip off.'
-    : vmax === 4
-      ? 'Showing all four rounds — the playoffs are underway.'
-      : `Showing rounds 1 through ${vmax} (${ROUND_NAMES[vmax]} is live). Later picks still hidden.`;
+  const filled = Object.keys(picks).length;
+  $('#picksViewRange').textContent = filled === 15
+    ? 'Full bracket · all 15 picks locked in.'
+    : `${filled}/15 picks submitted so far.`;
 
-  // Render rounds 1..vmax as stacked matchup cards (read-only)
+  // Render all four rounds as stacked matchup cards (read-only)
   const body = $('#picksViewBody');
   body.innerHTML = '';
-  for (let r = 1; r <= vmax; r++) {
+  for (let r = 1; r <= 4; r++) {
     const seriesInRound = SERIES.filter(s => s.round === r);
     const roundHtml = seriesInRound.map(s => readOnlyMatchupCardHtml(s, picks)).join('');
     body.insertAdjacentHTML('beforeend', `

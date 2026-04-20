@@ -146,7 +146,7 @@ app.get('/api/state', (req, res) => {
       score,
       correctByRound,
       tiebreaker: u.tiebreaker,
-      picks: locked ? picks : null
+      picks // always visible — pool is open for everyone to see each other's brackets
     };
   });
 
