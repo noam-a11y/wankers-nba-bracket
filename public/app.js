@@ -82,8 +82,21 @@ async function hydrateUser() {
 }
 
 // ===== Interactions =====
+// Once Game 1 of a series has tipped, that series' pick is frozen — no more changes.
+function isSeriesStarted(seriesId) {
+  const l = state.liveSeries?.[seriesId];
+  if (!l) return false;
+  if (l.liveGame) return true;
+  if (l.seriesState && l.seriesState !== '0-0') return true;
+  return false;
+}
+
 function pickTeam(seriesId, teamId) {
   if (state.locked) return;
+  if (isSeriesStarted(seriesId)) {
+    toast('That series is already underway — pick is locked', 'error');
+    return;
+  }
   const prev = state.picks[seriesId];
   if (prev === teamId) {
     delete state.picks[seriesId];
@@ -328,11 +341,12 @@ function matchupCardHtml(series, size) {
   const pickedId = state.picks[series.id];
   const actual = state.results[series.id]?.winner;
   const live = state.liveSeries[series.id];
+  const frozen = isSeriesStarted(series.id);
   return `
-    <div class="matchup-card" data-series="${series.id}">
+    <div class="matchup-card ${frozen ? 'frozen' : ''}" data-series="${series.id}">
       ${liveBadgeHtml(live, teams)}
-      ${matchupRowHtml(teams[0], series, size, true, pickedId, actual)}
-      ${matchupRowHtml(teams[1], series, size, false, pickedId, actual)}
+      ${matchupRowHtml(teams[0], series, size, true, pickedId, actual, frozen)}
+      ${matchupRowHtml(teams[1], series, size, false, pickedId, actual, frozen)}
       ${liveFooterHtml(live, teams)}
     </div>
   `;
@@ -381,7 +395,7 @@ function liveFooterHtml(live, teams) {
   return `<div class="live-footer empty">—</div>`;
 }
 
-function matchupRowHtml(teamId, series, size, isTop, pickedId, actual) {
+function matchupRowHtml(teamId, series, size, isTop, pickedId, actual, frozen = false) {
   if (!teamId) {
     const label = series.round === 1 ? 'winner' :
       series.round === 2 ? `Winner of ${series.feeds[isTop ? 0 : 1]}` :
@@ -405,13 +419,14 @@ function matchupRowHtml(teamId, series, size, isTop, pickedId, actual) {
   else if (isPicked) classes.push('picked');
   else if (isActual) classes.push('actual-not-picked');
   else if (isOtherPicked) classes.push('other-picked');
+  if (frozen) classes.push('frozen-row');
 
   const teamLabel = size === 'sm' ? team.abbr : `${team.city} ${team.name}`;
   const showRecord = size !== 'sm';
   const wonBadge = isActual ? (isPicked ? '<span class="won-badge">✓</span>' : '<span class="won-badge">WON</span>') : '';
 
   return `
-    <button class="${classes.join(' ')}" data-series="${series.id}" data-team="${teamId}">
+    <button class="${classes.join(' ')}" data-series="${series.id}" data-team="${teamId}" ${frozen ? 'disabled' : ''} title="${frozen ? 'Series underway — pick is locked' : ''}">
       <span class="seed">${team.seed}</span>
       <img class="team-logo" src="${LOGO_URL(teamId)}" alt="${team.name}" loading="lazy" onerror="this.style.display='none'">
       <div class="team-text">

@@ -540,6 +540,34 @@ main {
   font-weight: 600;
 }
 
+/* =============== FROZEN (series-started) STATE =============== */
+.matchup-card.frozen {
+  position: relative;
+}
+.matchup-card.frozen::before {
+  content: '🔒';
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  z-index: 4;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.matchup-row.frozen-row {
+  cursor: not-allowed;
+}
+.matchup-row.frozen-row:not(.picked):hover {
+  background: transparent !important;
+  transform: none !important;
+}
+/* Picked team on a frozen card: keep the chartreuse highlight (they HAVE a pick)
+   but make it clear it's final — slightly desaturated and no hover translation. */
+.matchup-row.frozen-row.picked:hover {
+  background: var(--green-600) !important;
+}
+
 /* =============== LIVE SERIES BADGES =============== */
 .live-badge {
   position: absolute;

@@ -185,7 +185,7 @@ async function fetchLiveSeries(adminResults) {
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.post('/api/register', (req, res) => {
+app.post('/api/register', async (req, res) => {
   const name = (req.body?.name || '').trim();
   const picks = req.body?.picks || {};
   const tbRaw = req.body?.tiebreaker;
@@ -198,12 +198,21 @@ app.post('/api/register', (req, res) => {
     return res.status(403).json({ error: 'Picks are locked — the playoffs have started' });
   }
 
+  // Silently drop picks for any series that's already started — no hindsight picking.
+  const resultsRows = db.prepare('SELECT series_id, winner_id FROM results').all();
+  const resultsObj = Object.fromEntries(resultsRows.map(r => [r.series_id, { winner: r.winner_id }]));
+  const liveSeries = await fetchLiveSeries(resultsObj);
+  const allowedPicks = {};
+  for (const [sid, wid] of Object.entries(picks)) {
+    if (!isSeriesStarted(sid, liveSeries)) allowedPicks[sid] = wid;
+  }
+
   const editKey = crypto.randomBytes(12).toString('hex');
   const tx = db.transaction(() => {
     const result = db.prepare('INSERT INTO users (name, edit_key, tiebreaker) VALUES (?, ?, ?)').run(name, editKey, tiebreaker);
     const userId = result.lastInsertRowid;
     const ins = db.prepare('INSERT INTO picks (user_id, series_id, winner_id) VALUES (?, ?, ?)');
-    for (const [sid, wid] of Object.entries(picks)) ins.run(userId, sid, wid);
+    for (const [sid, wid] of Object.entries(allowedPicks)) ins.run(userId, sid, wid);
     return userId;
   });
 
@@ -227,22 +236,59 @@ app.get('/api/user/:editKey', (req, res) => {
   res.json({ id: user.id, name: user.name, tiebreaker: user.tiebreaker, picks: picksObj });
 });
 
-app.post('/api/user/:editKey/picks', (req, res) => {
+// A series is "started" once any playoff game has been played (completed or live).
+// Once started, that series' pick is frozen for everyone.
+function isSeriesStarted(seriesId, liveSeries) {
+  const l = liveSeries?.[seriesId];
+  if (!l) return false;
+  if (l.liveGame) return true;
+  if (l.seriesState && l.seriesState !== '0-0') return true;
+  return false;
+}
+
+app.post('/api/user/:editKey/picks', async (req, res) => {
   const user = db.prepare('SELECT id FROM users WHERE edit_key = ?').get(req.params.editKey);
   if (!user) return res.status(404).json({ error: 'Not found' });
   if (getSetting('locked') === 'true') return res.status(403).json({ error: 'Picks are locked' });
 
-  const picks = req.body?.picks || {};
+  const newPicks = req.body?.picks || {};
   const tbRaw = req.body?.tiebreaker;
   const tiebreaker = (tbRaw != null && Number.isFinite(+tbRaw)) ? +tbRaw : null;
+
+  // Resolve which series are frozen (already started) so we preserve the user's
+  // existing pick for those rather than accepting the incoming value.
+  const resultsRows = db.prepare('SELECT series_id, winner_id FROM results').all();
+  const resultsObj = Object.fromEntries(resultsRows.map(r => [r.series_id, { winner: r.winner_id }]));
+  const liveSeries = await fetchLiveSeries(resultsObj);
+  const existingRows = db.prepare('SELECT series_id, winner_id FROM picks WHERE user_id = ?').all(user.id);
+  const existingPicks = Object.fromEntries(existingRows.map(p => [p.series_id, p.winner_id]));
+
+  const mergedPicks = {};
+  const rejected = [];
+  // Iterate all series IDs that appear in either existing or new picks.
+  const allIds = new Set([...Object.keys(existingPicks), ...Object.keys(newPicks)]);
+  for (const sid of allIds) {
+    const started = isSeriesStarted(sid, liveSeries);
+    const prev = existingPicks[sid];
+    const next = newPicks[sid];
+    if (started) {
+      // Frozen — keep whatever the user had before; ignore any incoming change.
+      if (prev !== undefined) mergedPicks[sid] = prev;
+      if (next !== undefined && next !== prev) rejected.push(sid);
+    } else if (next !== undefined) {
+      mergedPicks[sid] = next;
+    }
+    // If neither prev nor next, skip (nothing to write).
+  }
+
   const tx = db.transaction(() => {
     db.prepare('DELETE FROM picks WHERE user_id = ?').run(user.id);
     const ins = db.prepare('INSERT INTO picks (user_id, series_id, winner_id) VALUES (?, ?, ?)');
-    for (const [sid, wid] of Object.entries(picks)) ins.run(user.id, sid, wid);
+    for (const [sid, wid] of Object.entries(mergedPicks)) ins.run(user.id, sid, wid);
     db.prepare('UPDATE users SET tiebreaker = ? WHERE id = ?').run(tiebreaker, user.id);
   });
   tx();
-  res.json({ ok: true });
+  res.json({ ok: true, rejected });
 });
 
 app.get('/api/state', async (req, res) => {
