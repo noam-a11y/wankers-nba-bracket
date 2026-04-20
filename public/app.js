@@ -663,12 +663,47 @@ function openLinkModal({ title, lead, url }) {
   $('#linkModal').classList.add('show');
 }
 
+function shareInviteMessage(url) {
+  return `🏀 Join the Wankers NBA Playoff Bracket\n\nPick winners of every 2026 playoff series, head-to-head with the group. Full bracket, live leaderboard, bragging rights on the line.\n\n${url}`;
+}
+
+function openShareModal() {
+  const url = `${location.origin}${location.pathname}`;
+  $('#shareModalLink').textContent = url;
+  $('#shareModalMessage').textContent = shareInviteMessage(url);
+  // Show native share button only if the browser supports it (mostly mobile).
+  $('#shareNativeBtn').hidden = typeof navigator.share !== 'function';
+  $('#shareModal').classList.add('show');
+}
+function closeShareModal() { $('#shareModal').classList.remove('show'); }
+
 function copyShareLink() {
   const url = `${location.origin}${location.pathname}`;
   navigator.clipboard.writeText(url).then(
     () => toast('Invite link copied — paste it in your group chat!', 'success'),
     () => toast('Copy failed — ' + url, 'error')
   );
+}
+
+function copyShareMessage() {
+  const url = `${location.origin}${location.pathname}`;
+  navigator.clipboard.writeText(shareInviteMessage(url)).then(
+    () => toast('Message copied — paste into any chat', 'success'),
+    () => toast('Copy failed', 'error')
+  );
+}
+
+async function shareNative() {
+  const url = `${location.origin}${location.pathname}`;
+  try {
+    await navigator.share({
+      title: 'Wankers NBA Playoff Bracket',
+      text: shareInviteMessage(url),
+      url
+    });
+  } catch (e) {
+    // User cancelled or error — silently ignore
+  }
 }
 function closeLinkModal() { $('#linkModal').classList.remove('show'); }
 
@@ -863,7 +898,12 @@ $$('[data-tab]').forEach(el => {
 });
 
 $('#joinBtn').addEventListener('click', openJoinModal);
-$('#shareInviteBtn').addEventListener('click', copyShareLink);
+$('#shareInviteBtn').addEventListener('click', openShareModal);
+$('#shareModalCopyLink').addEventListener('click', copyShareLink);
+$('#shareModalCopyMessage').addEventListener('click', copyShareMessage);
+$('#shareNativeBtn').addEventListener('click', shareNative);
+$('#shareModalClose').addEventListener('click', closeShareModal);
+$('#shareModal').addEventListener('click', (e) => { if (e.target.id === 'shareModal') closeShareModal(); });
 $('#closeModalBtn').addEventListener('click', closeJoinModal);
 $('#joinModal').addEventListener('click', (e) => { if (e.target.id === 'joinModal') closeJoinModal(); });
 $('#startPicksBtn').addEventListener('click', registerFromModal);
@@ -884,6 +924,7 @@ document.addEventListener('keydown', (e) => {
     closePicksViewModal();
     closeLinkModal();
     closeJoinModal();
+    closeShareModal();
   }
 });
 

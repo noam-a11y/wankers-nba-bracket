@@ -202,6 +202,29 @@
     </div>
   </div>
 
+  <!-- SHARE INVITE MODAL -->
+  <div class="modal-overlay" id="shareModal">
+    <div class="modal">
+      <h2>📣 Invite friends to the pool</h2>
+      <p class="lead">Anyone with this link can sign up and join the same leaderboard.</p>
+
+      <div style="background: var(--green-100); border: 1px solid var(--green-300); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 14px;">
+        <div class="overline" style="color: var(--green-800); margin-bottom: 10px;">🔗 Invite link</div>
+        <div class="link-box" id="shareModalLink" style="background: white; font-size: 15px; margin-bottom: 10px;"></div>
+        <button class="btn btn-accent" id="shareModalCopyLink" style="width: 100%;">📋 Copy link</button>
+      </div>
+
+      <div style="background: var(--bg-muted); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 14px;">
+        <div class="overline" style="color: var(--text-caption); margin-bottom: 10px;">💬 Ready-to-paste message</div>
+        <div id="shareModalMessage" style="background: var(--bg-surface); padding: 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font: var(--type-body); white-space: pre-wrap; word-break: break-word; margin-bottom: 10px; line-height: 1.5;"></div>
+        <button class="btn btn-ghost" id="shareModalCopyMessage" style="width: 100%;">📋 Copy message</button>
+      </div>
+
+      <button class="btn btn-ghost" id="shareNativeBtn" style="width: 100%; margin-bottom: 8px;" hidden>📱 Share via phone</button>
+      <button class="btn btn-ghost" id="shareModalClose" style="width: 100%; border: none; color: var(--text-caption);">Close</button>
+    </div>
+  </div>
+
   <!-- VIEW-ONLY PICKS MODAL (click leaderboard row) -->
   <div class="modal-overlay" id="picksViewModal">
     <div class="modal" style="max-width: 720px;">
