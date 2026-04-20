@@ -34,6 +34,7 @@
         <span class="dot"></span>
         <span id="statusText">Picks open</span>
       </div>
+      <button class="btn-ghost-dark" id="shareInviteBtn">📣 Share invite</button>
       <button class="btn-ghost-dark" id="joinBtn">Join the pool</button>
       <div class="avatar-ball">🏀</div>
     </div>
@@ -213,13 +214,34 @@
   <!-- SUCCESS MODAL (after save) -->
   <div class="modal-overlay" id="linkModal">
     <div class="modal">
-      <h2 id="linkModalTitle">🎉 You're in!</h2>
-      <p class="lead" id="linkModalLead">Your bracket is locked in. <strong>Save this private link</strong> so you can edit picks before the playoffs start.</p>
-      <div class="link-box" id="linkBox"></div>
-      <div style="display: flex; gap: 8px;">
-        <button class="btn btn-primary" id="linkCopyBtn" style="flex: 1">📋 Copy link</button>
-        <button class="btn btn-ghost" id="linkCloseBtn">Close</button>
+      <h2 id="linkModalTitle">🎉 You're on the board!</h2>
+      <p class="lead" id="linkModalLead">Your bracket is saved. Two links below — <strong>share one, keep the other.</strong></p>
+
+      <div style="background: var(--green-100); border: 1px solid var(--green-300); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <div class="overline" style="color: var(--green-800);">📣 Share with friends</div>
+          <span style="font: 600 10px/1 var(--font-body); color: var(--green-800); text-transform: uppercase; letter-spacing: 0.08em;">Public</span>
+        </div>
+        <div class="link-box" id="shareLinkBox" style="background: white; margin-bottom: 10px;"></div>
+        <button class="btn btn-accent" id="shareCopyBtn" style="width: 100%;">📋 Copy invite link</button>
+        <p style="font: var(--type-body-small); color: var(--text-caption); margin-top: 8px; line-height: 1.4;">
+          Anyone with this link can sign up and join the same leaderboard. Drop it in your group chat.
+        </p>
       </div>
+
+      <div style="background: var(--bg-muted); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <div class="overline" style="color: var(--text-caption);">🔐 Your edit link</div>
+          <span style="font: 600 10px/1 var(--font-body); color: var(--red-600); text-transform: uppercase; letter-spacing: 0.08em;">Private — don't share</span>
+        </div>
+        <div class="link-box" id="linkBox"></div>
+        <button class="btn btn-ghost" id="linkCopyBtn" style="width: 100%;">📋 Copy edit link</button>
+        <p style="font: var(--type-body-small); color: var(--text-caption); margin-top: 8px; line-height: 1.4;">
+          Bookmark this to tweak your picks later — don't send it to anyone (whoever has it can edit your bracket).
+        </p>
+      </div>
+
+      <button class="btn btn-primary" id="linkCloseBtn" style="width: 100%;">Done — show me the leaderboard</button>
     </div>
   </div>
 

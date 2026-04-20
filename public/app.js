@@ -674,7 +674,17 @@ function openLinkModal({ title, lead, url }) {
   $('#linkModalTitle').innerHTML = title;
   $('#linkModalLead').innerHTML = lead;
   $('#linkBox').textContent = url;
+  const shareUrl = `${location.origin}${location.pathname}`;
+  $('#shareLinkBox').textContent = shareUrl;
   $('#linkModal').classList.add('show');
+}
+
+function copyShareLink() {
+  const url = `${location.origin}${location.pathname}`;
+  navigator.clipboard.writeText(url).then(
+    () => toast('Invite link copied — paste it in your group chat!', 'success'),
+    () => toast('Copy failed — ' + url, 'error')
+  );
 }
 function closeLinkModal() { $('#linkModal').classList.remove('show'); }
 
@@ -868,6 +878,7 @@ $$('[data-tab]').forEach(el => {
 });
 
 $('#joinBtn').addEventListener('click', openJoinModal);
+$('#shareInviteBtn').addEventListener('click', copyShareLink);
 $('#closeModalBtn').addEventListener('click', closeJoinModal);
 $('#joinModal').addEventListener('click', (e) => { if (e.target.id === 'joinModal') closeJoinModal(); });
 $('#startPicksBtn').addEventListener('click', registerFromModal);
@@ -876,6 +887,7 @@ $('#editKeyInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') 
 $('#nameInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') $('#startPicksBtn').click(); });
 
 $('#linkCopyBtn').addEventListener('click', copyEditLink);
+$('#shareCopyBtn').addEventListener('click', copyShareLink);
 $('#linkCloseBtn').addEventListener('click', closeLinkModal);
 $('#linkModal').addEventListener('click', (e) => { if (e.target.id === 'linkModal') closeLinkModal(); });
 $('#copyLinkBtn').addEventListener('click', copyEditLink);
