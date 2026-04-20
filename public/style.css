@@ -413,7 +413,7 @@ main {
 
 .col-half {
   position: relative;
-  height: 342px;
+  height: var(--half-h, 414px);
 }
 
 /* =============== MATCHUP CARD =============== */
@@ -538,6 +538,73 @@ main {
   background: var(--bg-muted);
   color: var(--text-body);
   font-weight: 600;
+}
+
+/* =============== LIVE SERIES BADGES =============== */
+.live-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font: 700 10px/1 var(--font-code);
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--primary-500);
+  color: var(--green-600);
+  letter-spacing: 0.5px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.live-badge.live {
+  background: var(--red-500);
+  color: white;
+  letter-spacing: 0.3px;
+}
+.live-badge.live .live-dot {
+  width: 5px; height: 5px; border-radius: 999px;
+  background: white;
+  animation: livePulse 1.2s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.live-footer {
+  border-top: 1px solid var(--border-subtle);
+  padding: 3px 8px;
+  height: 18px;
+  font: 600 10px/1.2 var(--font-code);
+  color: var(--text-caption);
+  text-align: center;
+  letter-spacing: 0.3px;
+  background: var(--bg-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+.live-footer.empty {
+  color: var(--text-dim, #9aa);
+  background: transparent;
+}
+.live-footer.live {
+  background: rgba(231, 75, 60, 0.08);
+  color: var(--red-600);
+  font-weight: 700;
+}
+.live-footer.upcoming {
+  background: var(--bg-muted);
+  color: var(--text-caption);
+  font-weight: 500;
+  font-style: italic;
+}
+
+/* When a matchup card has a live badge, shift the conf-tag/series-label a bit so they don't collide */
+.matchup-card .series-label {
+  padding-right: 60px;
 }
 
 /* =============== FINALS FRAME =============== */

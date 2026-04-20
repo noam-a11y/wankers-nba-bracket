@@ -54,6 +54,134 @@ const seriesRound = (id) => {
   return 0;
 };
 
+// ----- Series structure (mirrors public/data.js) and ESPN live-data fetcher -----
+const SERIES_DEFS = [
+  { id: 'E1', slots: ['DET', 'ORL'] },
+  { id: 'E2', slots: ['CLE', 'TOR'] },
+  { id: 'E3', slots: ['NYK', 'ATL'] },
+  { id: 'E4', slots: ['BOS', 'PHI'] },
+  { id: 'E5', feeds: ['E1', 'E2'] },
+  { id: 'E6', feeds: ['E3', 'E4'] },
+  { id: 'EF', feeds: ['E5', 'E6'] },
+  { id: 'W1', slots: ['OKC', 'PHX'] },
+  { id: 'W2', slots: ['LAL', 'HOU'] },
+  { id: 'W3', slots: ['DEN', 'MIN'] },
+  { id: 'W4', slots: ['SAS', 'POR'] },
+  { id: 'W5', feeds: ['W1', 'W2'] },
+  { id: 'W6', feeds: ['W3', 'W4'] },
+  { id: 'WF', feeds: ['W5', 'W6'] },
+  { id: 'NF', feeds: ['EF', 'WF'] }
+];
+
+// ESPN occasionally uses shorter abbreviations than NBA.com; normalize them.
+const ESPN_ABBR_ALIAS = { SA: 'SAS', NY: 'NYK', NO: 'NOP', GS: 'GSW', UTAH: 'UTA' };
+const normAbbr = (a) => ESPN_ABBR_ALIAS[a?.toUpperCase()] || a?.toUpperCase();
+
+function resolveSeriesTeams(seriesId, results) {
+  const s = SERIES_DEFS.find(x => x.id === seriesId);
+  if (!s) return null;
+  if (s.slots) return s.slots.slice();
+  const teams = s.feeds.map(fid => results[fid]?.winner).filter(Boolean);
+  return teams.length === 2 ? teams : null;
+}
+
+let liveCache = { at: 0, data: {}, inFlight: null };
+
+async function fetchLiveSeries(adminResults) {
+  const ageMs = Date.now() - liveCache.at;
+  if (ageMs < 60_000) return liveCache.data;
+  if (liveCache.inFlight) return liveCache.inFlight;
+
+  const job = (async () => {
+    try {
+      const today = new Date();
+      const end = new Date(today.getTime() + 24 * 3600 * 1000);
+      const yyyymmdd = (d) => d.toISOString().slice(0, 10).replace(/-/g, '');
+      const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=20260419-${yyyymmdd(end)}`;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`ESPN HTTP ${res.status}`);
+      const data = await res.json();
+      const events = data.events || [];
+
+      const groups = new Map();
+      for (const g of events) {
+        const comp = g.competitions?.[0];
+        if (!comp) continue;
+        const [a, b] = comp.competitors || [];
+        if (!a || !b) continue;
+        const abbrA = normAbbr(a.team?.abbreviation);
+        const abbrB = normAbbr(b.team?.abbreviation);
+        if (!abbrA || !abbrB) continue;
+        const key = [abbrA, abbrB].sort().join('-');
+        const status = g.status?.type || comp.status?.type || {};
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push({
+          date: g.date,
+          completed: !!status.completed,
+          state: status.state, // 'pre' | 'in' | 'post'
+          desc: status.shortDetail || status.description || '',
+          teams: {
+            [abbrA]: { score: +a.score || 0, winner: !!a.winner, homeAway: a.homeAway },
+            [abbrB]: { score: +b.score || 0, winner: !!b.winner, homeAway: b.homeAway }
+          }
+        });
+      }
+
+      const out = {};
+      for (const s of SERIES_DEFS) {
+        const teams = resolveSeriesTeams(s.id, adminResults);
+        if (!teams) continue;
+        const [tA, tB] = teams;
+        const key = [tA, tB].sort().join('-');
+        const sGames = (groups.get(key) || []).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+        if (!sGames.length) continue;
+
+        const wins = { [tA]: 0, [tB]: 0 };
+        let lastCompleted = null;
+        for (const g of sGames) {
+          if (g.completed) {
+            if (g.teams[tA]?.winner) wins[tA]++;
+            else if (g.teams[tB]?.winner) wins[tB]++;
+            lastCompleted = g;
+          }
+        }
+        const live = sGames.find(g => g.state === 'in');
+        const next = sGames.find(g => g.state === 'pre');
+
+        out[s.id] = {
+          teams,
+          seriesState: `${wins[tA]}-${wins[tB]}`,
+          wins,
+          lastGame: lastCompleted ? {
+            date: lastCompleted.date,
+            scores: { [tA]: lastCompleted.teams[tA].score, [tB]: lastCompleted.teams[tB].score },
+            winner: lastCompleted.teams[tA].winner ? tA : (lastCompleted.teams[tB].winner ? tB : null)
+          } : null,
+          liveGame: live ? {
+            date: live.date,
+            status: live.desc,
+            scores: { [tA]: live.teams[tA].score, [tB]: live.teams[tB].score }
+          } : null,
+          nextGame: next ? { date: next.date } : null
+        };
+      }
+
+      liveCache = { at: Date.now(), data: out, inFlight: null };
+      return out;
+    } catch (e) {
+      console.error('ESPN fetch failed:', e.message);
+      liveCache.inFlight = null;
+      return liveCache.data || {};
+    }
+  })();
+
+  liveCache.inFlight = job;
+  return job;
+}
+
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -117,7 +245,7 @@ app.post('/api/user/:editKey/picks', (req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/api/state', (req, res) => {
+app.get('/api/state', async (req, res) => {
   const locked = getSetting('locked') === 'true';
   const results = db.prepare('SELECT series_id, winner_id, games FROM results').all();
   const resultsObj = Object.fromEntries(results.map(r => [r.series_id, { winner: r.winner_id, games: r.games }]));
@@ -160,7 +288,8 @@ app.get('/api/state', (req, res) => {
     return a.name.localeCompare(b.name);
   });
 
-  res.json({ locked, results: resultsObj, leaderboard });
+  const liveSeries = await fetchLiveSeries(resultsObj);
+  res.json({ locked, results: resultsObj, leaderboard, liveSeries });
 });
 
 const requireAdmin = (req, res, next) => {

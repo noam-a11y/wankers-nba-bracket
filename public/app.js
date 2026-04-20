@@ -5,6 +5,7 @@ const state = {
   user: null,           // { id, name, editKey }
   locked: false,
   results: {},          // { seriesId: { winner, games } }
+  liveSeries: {},       // { seriesId: { seriesState, lastGame, liveGame, ... } } from ESPN
   leaderboard: [],
   activeTab: 'bracket',
   dirty: false
@@ -32,6 +33,7 @@ async function loadState() {
     state.locked = data.locked;
     state.results = data.results;
     state.leaderboard = data.leaderboard;
+    state.liveSeries = data.liveSeries || {};
   } catch (e) {
     toast('Failed to load: ' + e.message, 'error');
   }
@@ -140,13 +142,15 @@ function resetBracket() {
 // ===== Rendering =====
 
 // Layout constants — tuned to fit a typical 1280-1440px laptop viewport.
-const CARD_H_SM = 69;
-const CARD_H_MD = 85;
+// Heights include a ~18px "live footer" so every card can show series state/last score.
+const LIVE_FOOTER_H = 18;
+const CARD_H_SM = 34 + 34 + 1 + LIVE_FOOTER_H;  // 87
+const CARD_H_MD = 42 + 42 + 1 + LIVE_FOOTER_H;  // 103
 const R1_GAP = 22;
-const R1_PITCH = CARD_H_SM + R1_GAP; // 91
+const R1_PITCH = CARD_H_SM + R1_GAP;            // 109
 const COL_W = 170;
 const CONN_W = 28;
-const HALF_H = 4 * CARD_H_SM + 3 * R1_GAP; // 342
+const HALF_H = 4 * CARD_H_SM + 3 * R1_GAP;      // 414
 const FIN_COL_W = 228;
 const TREE_MIN_W = COL_W * 5 + CONN_W * 4 + FIN_COL_W; // 1190
 
@@ -275,6 +279,7 @@ function renderBracketTree() {
   `;
 
   tree.style.minWidth = TREE_MIN_W + 'px';
+  tree.style.setProperty('--half-h', HALF_H + 'px');
   tree.innerHTML = `
     <div class="bracket-headers-row">
       ${halfHeadersWest}
@@ -322,12 +327,58 @@ function matchupCardHtml(series, size) {
   const teams = possibleTeamsFor(series.id, state.picks, state.results);
   const pickedId = state.picks[series.id];
   const actual = state.results[series.id]?.winner;
+  const live = state.liveSeries[series.id];
   return `
     <div class="matchup-card" data-series="${series.id}">
+      ${liveBadgeHtml(live, teams)}
       ${matchupRowHtml(teams[0], series, size, true, pickedId, actual)}
       ${matchupRowHtml(teams[1], series, size, false, pickedId, actual)}
+      ${liveFooterHtml(live, teams)}
     </div>
   `;
+}
+
+// Small pill at top-right showing series state, e.g. "1-0" or "LIVE 45-38"
+function liveBadgeHtml(live, teams) {
+  if (!live || !teams?.every(Boolean)) return '';
+  const [a, b] = teams;
+  if (live.liveGame) {
+    const sa = live.liveGame.scores[a] ?? 0;
+    const sb = live.liveGame.scores[b] ?? 0;
+    return `<span class="live-badge live"><span class="live-dot"></span>LIVE ${sa}-${sb}</span>`;
+  }
+  if (live.seriesState && live.seriesState !== '0-0') {
+    return `<span class="live-badge">${live.seriesState}</span>`;
+  }
+  return '';
+}
+
+// Thin strip at bottom of card. Always rendered (so card heights stay consistent
+// for the absolute-positioned bracket tree). Content depends on live state.
+function liveFooterHtml(live, teams) {
+  if (!teams?.every(Boolean) || !live) return `<div class="live-footer empty">—</div>`;
+  const [a, b] = teams;
+  if (live.liveGame) {
+    const sa = live.liveGame.scores[a] ?? 0;
+    const sb = live.liveGame.scores[b] ?? 0;
+    return `<div class="live-footer live">${live.liveGame.status || 'Live'} · ${a} ${sa}-${sb} ${b}</div>`;
+  }
+  if (live.lastGame) {
+    const lg = live.lastGame;
+    const totalGames = (live.wins?.[a] || 0) + (live.wins?.[b] || 0);
+    const winner = lg.winner;
+    const sa = lg.scores[a] ?? 0;
+    const sb = lg.scores[b] ?? 0;
+    const scoreStr = winner === a ? `${a} ${sa}-${sb}` : winner === b ? `${b} ${sb}-${sa}` : `${sa}-${sb}`;
+    return `<div class="live-footer">G${totalGames}: ${scoreStr}</div>`;
+  }
+  if (live.nextGame) {
+    const d = new Date(live.nextGame.date);
+    const day = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    return `<div class="live-footer upcoming">Tips ${day} · ${time}</div>`;
+  }
+  return `<div class="live-footer empty">—</div>`;
 }
 
 function matchupRowHtml(teamId, series, size, isTop, pickedId, actual) {
@@ -609,6 +660,7 @@ function readOnlyMatchupCardHtml(series, picks) {
   const teams = possibleTeamsFor(series.id, picks, state.results);
   const pickedId = picks[series.id];
   const actual = state.results[series.id]?.winner;
+  const live = state.liveSeries[series.id];
   const confLabel = series.conf === 'E' ? 'East' : series.conf === 'W' ? 'West' : 'Finals';
   const rows = teams.map((teamId, i) => {
     if (!teamId) {
@@ -646,8 +698,10 @@ function readOnlyMatchupCardHtml(series, picks) {
     <div class="matchup-card">
       <div style="padding: 6px 10px 0; display: flex; justify-content: space-between; align-items: center;">
         <span style="font: 600 9px/1 var(--font-code); color: var(--text-caption); letter-spacing: 1px;">${confLabel} · ${series.id}</span>
+        ${liveBadgeHtml(live, teams)}
       </div>
       ${rows}
+      ${liveFooterHtml(live, teams)}
     </div>
   `;
 }
