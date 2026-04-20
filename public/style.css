@@ -584,31 +584,105 @@ main {
 /* =============== CONTROLS BAR (under bracket) =============== */
 .controls-bar {
   margin-top: 18px;
-  padding: 14px 18px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
   flex-wrap: wrap;
   position: sticky;
   bottom: 16px;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 -2px 24px rgba(27, 27, 31, 0.06), 0 12px 24px rgba(27, 27, 31, 0.10);
   z-index: 5;
 }
+.controls-left {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-width: 220px;
+}
 .controls-bar .hint {
-  font: var(--type-body-small);
-  color: var(--text-subtitle);
-  line-height: 1.5;
-  max-width: 640px;
+  font: var(--type-body);
+  color: var(--text-title);
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .controls-bar .hint strong {
+  font: 700 20px/1 var(--font-title);
   color: var(--text-title);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.controls-bar .hint-sub {
+  font: var(--type-body-small);
+  color: var(--text-caption);
+}
+.controls-secondary {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---- BIG chartreuse save button ---- */
+.btn-save-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 28px;
+  background: var(--green-600);
+  color: var(--primary-500);
+  border: none;
+  border-radius: var(--radius-md);
+  font: 700 17px/1 var(--font-body);
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(173, 238, 32, 0.40), 0 2px 4px rgba(27, 27, 31, 0.08);
+  transition: transform var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard);
+  white-space: nowrap;
+  position: relative;
+}
+.btn-save-hero .save-icon { font-size: 22px; line-height: 1; }
+.btn-save-hero .save-arrow { font-size: 20px; opacity: 0.6; transition: transform var(--dur-fast) var(--ease-standard); }
+.btn-save-hero:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(173, 238, 32, 0.55); }
+.btn-save-hero:hover .save-arrow { transform: translateX(4px); opacity: 1; }
+.btn-save-hero:active { transform: translateY(0); }
+.btn-save-hero:disabled {
+  background: var(--gray-300);
+  color: var(--text-caption);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.btn-save-hero:disabled .save-arrow { opacity: 0.3; }
+/* Pulse when bracket is complete and unsaved */
+.btn-save-hero.ready {
+  animation: readyPulse 1.8s ease-in-out infinite;
+}
+@keyframes readyPulse {
+  0%, 100% {
+    box-shadow: 0 6px 18px rgba(173, 238, 32, 0.40), 0 0 0 0 rgba(173, 238, 32, 0.5);
+  }
+  50% {
+    box-shadow: 0 10px 28px rgba(173, 238, 32, 0.55), 0 0 0 12px rgba(173, 238, 32, 0);
+  }
+}
+
+@media (max-width: 640px) {
+  .controls-bar { padding: 14px 14px; }
+  .btn-save-hero {
+    width: 100%;
+    justify-content: center;
+    padding: 18px 24px;
+    font-size: 18px;
+  }
+  .controls-secondary { flex-wrap: wrap; }
+  .controls-secondary .btn { flex: 1; }
 }
 
 /* =============== SIDE PANEL =============== */

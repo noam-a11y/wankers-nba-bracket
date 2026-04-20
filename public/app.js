@@ -416,6 +416,12 @@ function renderSidePanel() {
       : `${filled} / 15 picks`;
   }
 
+  const setSaveBtn = (label, { disabled = false, pulse = false } = {}) => {
+    saveBtn.innerHTML = `<span class="save-icon">💾</span><span class="save-label">${label}</span><span class="save-arrow">→</span>`;
+    saveBtn.disabled = disabled;
+    saveBtn.classList.toggle('ready', pulse);
+  };
+
   if (state.locked) {
     saveBtn.hidden = true;
     tbInput.disabled = true;
@@ -424,14 +430,11 @@ function renderSidePanel() {
     saveBtn.hidden = false;
     tbInput.disabled = false;
     if (filled === 0) {
-      saveBtn.innerHTML = '💾 Save my bracket';
-      saveBtn.disabled = true;
+      setSaveBtn('Save my bracket', { disabled: true });
     } else if (filled < 15) {
-      saveBtn.innerHTML = `💾 Save progress (${filled}/15)`;
-      saveBtn.disabled = false;
+      setSaveBtn(`Save progress · ${filled}/15`);
     } else {
-      saveBtn.innerHTML = state.user ? '💾 Update my bracket' : '💾 Save my bracket';
-      saveBtn.disabled = false;
+      setSaveBtn(state.user ? 'Update my bracket' : 'Save my bracket — all 15 picked!', { pulse: !state.user });
     }
     $('#picksSub').textContent = filled === 15 ? 'Bracket complete' : `${15 - filled} series left`;
   }
@@ -709,8 +712,9 @@ async function save() {
   }
 
   // Registered user — update their bracket on the server.
-  saveBtn.innerHTML = '<span class="spinner"></span> Saving...';
+  saveBtn.innerHTML = '<span class="spinner"></span><span>Saving...</span>';
   saveBtn.disabled = true;
+  saveBtn.classList.remove('ready');
   try {
     await api('api/user/' + encodeURIComponent(state.user.editKey) + '/picks', {
       method: 'POST',

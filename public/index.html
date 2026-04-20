@@ -104,15 +104,21 @@
           </div>
 
           <div class="controls-bar" id="controlsBar">
-            <div class="hint">
-              <strong id="controlsProgress">0 / 15 picks</strong> ·
-              Click a team to advance them. Changing an earlier round clears picks that depended on it.
+            <div class="controls-left">
+              <div class="hint">
+                <strong id="controlsProgress">0 / 15 picks</strong>
+                <span class="hint-sub">Click a team to advance them</span>
+              </div>
+              <div class="controls-secondary">
+                <button class="btn btn-ghost" id="chalkBtn">Chalk picks</button>
+                <button class="btn btn-ghost" id="resetBtn">Reset</button>
+              </div>
             </div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <button class="btn btn-ghost" id="chalkBtn">Chalk picks</button>
-              <button class="btn btn-ghost" id="resetBtn">Reset</button>
-              <button class="btn btn-accent" id="saveBtnMain">💾 Save my bracket</button>
-            </div>
+            <button class="btn-save-hero" id="saveBtnMain">
+              <span class="save-icon">💾</span>
+              <span class="save-label">Save my bracket</span>
+              <span class="save-arrow">→</span>
+            </button>
           </div>
           <p class="error" id="saveErrorMain" hidden style="margin-top: 8px;"></p>
         </div>
