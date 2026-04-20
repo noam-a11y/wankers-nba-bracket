@@ -679,6 +679,8 @@ function openLinkModal({ title, lead, url }) {
 function closeLinkModal() { $('#linkModal').classList.remove('show'); }
 
 // ===== Save flow =====
+// Click main Save button: if registered → push updates; else prompt for name.
+// Actual registration happens in the modal's startPicksBtn handler.
 async function save() {
   const errEl = $('#saveErrorMain');
   errEl.hidden = true;
@@ -690,67 +692,84 @@ async function save() {
 
   if (state.locked) return;
 
-  if (!state.user) {
-    // Not registered yet — need a name
-    const name = ($('#nameInput').value || '').trim();
-    if (!name) {
-      openJoinModal();
-      return;
-    }
-    saveBtn.innerHTML = '<span class="spinner"></span> Saving...';
-    saveBtn.disabled = true;
-    try {
-      const resp = await api('api/register', {
-        method: 'POST',
-        body: JSON.stringify({ name, picks: state.picks, tiebreaker })
-      });
-      state.user = { id: resp.userId, name: resp.name, editKey: resp.editKey };
-      saveLocalUser(state.user);
-      closeJoinModal();
-      await loadState();
-      render();
-      setTab('leaderboard');
-      const url = `${location.origin}${location.pathname}?k=${resp.editKey}`;
-      const complete = Object.keys(state.picks).length === 15;
-      openLinkModal({
-        title: complete ? '🎉 You’re on the board!' : '💾 Progress saved',
-        lead: complete
-          ? 'Your bracket is saved. <strong>Copy this private link</strong> so you can edit picks before the playoffs tip off.'
-          : 'Saved so far. <strong>Copy this private link</strong> so you can come back and finish your bracket before lock.',
-        url
-      });
-      if (complete) celebrate();
-    } catch (e) {
-      errEl.textContent = e.message;
-      errEl.hidden = false;
-      $('#gateError').textContent = e.message;
-      $('#gateError').hidden = false;
-      openJoinModal();
-    } finally {
-      saveBtn.disabled = false;
-      renderSidePanel();
-    }
-  } else {
-    saveBtn.innerHTML = '<span class="spinner"></span> Saving...';
-    saveBtn.disabled = true;
-    try {
-      await api('api/user/' + encodeURIComponent(state.user.editKey) + '/picks', {
-        method: 'POST',
-        body: JSON.stringify({ picks: state.picks, tiebreaker })
-      });
-      await loadState();
-      render();
-      state.dirty = false;
-      toast('Bracket saved · see how you rank', 'success');
-      if (Object.keys(state.picks).length === 15) celebrate();
-      setTab('leaderboard');
-    } catch (e) {
-      errEl.textContent = e.message;
-      errEl.hidden = false;
-    } finally {
-      saveBtn.disabled = false;
-      renderSidePanel();
-    }
+  if (!state.user?.editKey) {
+    // Not registered yet — open the name modal. The modal handler (below) calls registerFromModal.
+    openJoinModal();
+    return;
+  }
+
+  // Registered user — update their bracket on the server.
+  saveBtn.innerHTML = '<span class="spinner"></span> Saving...';
+  saveBtn.disabled = true;
+  try {
+    await api('api/user/' + encodeURIComponent(state.user.editKey) + '/picks', {
+      method: 'POST',
+      body: JSON.stringify({ picks: state.picks, tiebreaker })
+    });
+    await loadState();
+    render();
+    state.dirty = false;
+    toast('Bracket saved · see how you rank', 'success');
+    if (Object.keys(state.picks).length === 15) celebrate();
+    setTab('leaderboard');
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.hidden = false;
+  } finally {
+    saveBtn.disabled = false;
+    renderSidePanel();
+  }
+}
+
+// Called from the modal's "Save my bracket →" button. Registers a new user
+// with the name + current picks, then auto-navigates to the leaderboard.
+async function registerFromModal() {
+  const name = $('#nameInput').value.trim();
+  $('#gateError').hidden = true;
+  if (!name || name.length < 2) {
+    $('#gateError').textContent = 'Enter a name at least 2 characters long';
+    $('#gateError').hidden = false;
+    return;
+  }
+  if (state.locked) {
+    $('#gateError').textContent = 'Picks are locked — the playoffs already started.';
+    $('#gateError').hidden = false;
+    return;
+  }
+  const btn = $('#startPicksBtn');
+  const prevLabel = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Saving...';
+  const tbVal = $('#tiebreakerInput').value;
+  const tiebreaker = tbVal === '' ? null : +tbVal;
+  try {
+    const resp = await api('api/register', {
+      method: 'POST',
+      body: JSON.stringify({ name, picks: state.picks, tiebreaker })
+    });
+    state.user = { id: resp.userId, name: resp.name, editKey: resp.editKey };
+    state.tiebreaker = tiebreaker;
+    saveLocalUser(state.user);
+    closeJoinModal();
+    await loadState();
+    render();
+    setTab('leaderboard');
+    const url = `${location.origin}${location.pathname}?k=${resp.editKey}`;
+    const complete = Object.keys(state.picks).length === 15;
+    openLinkModal({
+      title: complete ? '🎉 You’re on the board!' : '💾 Progress saved',
+      lead: complete
+        ? 'Your bracket is saved. <strong>Copy this private link</strong> so you can edit picks before the playoffs tip off.'
+        : 'Saved so far. <strong>Copy this private link</strong> so you can come back and finish your bracket before lock.',
+      url
+    });
+    if (complete) celebrate();
+  } catch (e) {
+    $('#gateError').textContent = e.message;
+    $('#gateError').hidden = false;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = prevLabel;
   }
 }
 
@@ -851,24 +870,7 @@ $$('[data-tab]').forEach(el => {
 $('#joinBtn').addEventListener('click', openJoinModal);
 $('#closeModalBtn').addEventListener('click', closeJoinModal);
 $('#joinModal').addEventListener('click', (e) => { if (e.target.id === 'joinModal') closeJoinModal(); });
-$('#startPicksBtn').addEventListener('click', () => {
-  const name = $('#nameInput').value.trim();
-  $('#gateError').hidden = true;
-  if (!name || name.length < 2) {
-    $('#gateError').textContent = 'Enter a name at least 2 characters long';
-    $('#gateError').hidden = false;
-    return;
-  }
-  if (state.locked) {
-    $('#gateError').textContent = 'Picks are locked — the playoffs already started.';
-    $('#gateError').hidden = false;
-    return;
-  }
-  // If they have localStorage picks, keep them; else start fresh
-  state.user = { id: null, name, editKey: null };
-  closeJoinModal();
-  save();
-});
+$('#startPicksBtn').addEventListener('click', registerFromModal);
 $('#loadEditBtn').addEventListener('click', loadViaEditKey);
 $('#editKeyInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') loadViaEditKey(); });
 $('#nameInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') $('#startPicksBtn').click(); });
