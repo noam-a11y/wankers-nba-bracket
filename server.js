@@ -182,6 +182,38 @@ async function fetchLiveSeries(adminResults) {
   return job;
 }
 
+// Auto-promote series from ESPN live data into the `results` table once a team
+// hits 4 wins. Cascades across rounds (R1 writes → R2 matchups resolve → repeat)
+// in up to 4 passes per call, so a first invocation against an empty results
+// table can populate everything completed so far. Manual admin results are
+// never overwritten (ON CONFLICT DO NOTHING).
+async function syncResultsFromLive() {
+  const upsert = db.prepare(
+    'INSERT INTO results (series_id, winner_id, games) VALUES (?, ?, ?) ' +
+    'ON CONFLICT(series_id) DO NOTHING'
+  );
+  for (let pass = 0; pass < 4; pass++) {
+    const rows = db.prepare('SELECT series_id, winner_id FROM results').all();
+    const resultsObj = Object.fromEntries(rows.map(r => [r.series_id, { winner: r.winner_id }]));
+    const live = await fetchLiveSeries(resultsObj);
+    let wrote = 0;
+    for (const [sid, data] of Object.entries(live || {})) {
+      if (resultsObj[sid]) continue;
+      const [tA, tB] = data.teams || [];
+      if (!tA || !tB) continue;
+      const winsA = data.wins?.[tA] || 0;
+      const winsB = data.wins?.[tB] || 0;
+      if (winsA < 4 && winsB < 4) continue;
+      const winner = winsA >= 4 ? tA : tB;
+      const games = winsA + winsB;
+      const r = upsert.run(sid, winner, String(games));
+      if (r.changes > 0) wrote++;
+    }
+    if (wrote === 0) break;
+    liveCache.at = 0; // bust cache so the next pass re-resolves teams for the next round
+  }
+}
+
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -292,6 +324,7 @@ app.post('/api/user/:editKey/picks', async (req, res) => {
 });
 
 app.get('/api/state', async (req, res) => {
+  await syncResultsFromLive();
   const locked = getSetting('locked') === 'true';
   const results = db.prepare('SELECT series_id, winner_id, games FROM results').all();
   const resultsObj = Object.fromEntries(results.map(r => [r.series_id, { winner: r.winner_id, games: r.games }]));
